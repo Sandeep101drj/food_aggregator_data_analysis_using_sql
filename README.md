@@ -1,10 +1,17 @@
-# Data Analysis Project Using SQL : Sales Analysis
+#  Data Analysis Project Using SQL : Food Aggregator Data Analysis
+
+
 
 ## Objective
-The objective of this project is to perform a detailed analysis of sales data for a fictional chocolate business. The analysis aims to identify trends in sales performance, product popularity, and salesperson effectiveness over specified periods. By utilizing SQL queries to extract and analyze data from the sales, products, people, and geographic tables, the insights gained will support strategic decisions to enhance sales operations and marketing initiatives.
+The objective of this project is to conduct a comprehensive data analysis of a food aggregator platform using synthetic data. By using SQL queries on the underlying database, I aim to uncover insights related to customer behavior, restaurant performance, and overall business metrics. These insights will help stakeholders make informed decisions regarding marketing strategies, menu optimization, and customer engagement initiatives.
 
-## Analysis
-The analysis uses a series of SQL queries that extract relevant data from various tables, including sales, products, people, and geo. Each query focuses on specific business questions, such as identifying high-volume shipments, comparing product sales, and assessing salesperson performance. This approach enables a comprehensive understanding of sales dynamics, helping to uncover patterns in customer preferences and operational efficiency.
+## Findings and Insights
+This analysis provides various insights that can be instrumental for the food aggregator business:
+1. **Customer Behavior**: Identifying customers who have never placed an order can help in targeting marketing efforts to convert them into active users.
+2. **Pricing Strategy**: Understanding the average price per dish assists in positioning the menu competitively.
+3. **Restaurant Performance**: Insights into top-performing restaurants and those exceeding specific sales thresholds can guide promotional efforts.
+4. **Order Trends**: Analyzing order trends over time provides insights into revenue growth, assisting with forecasting and budgeting.
+5. **Customer Loyalty**: Recognizing restaurants with maximum repeat customers aids in developing loyalty programs and improving customer retention.
 
 ## Tools Used
 This project was developed using Microsoft SQL Server and Visual Studio Code. 
@@ -15,200 +22,165 @@ This project was developed using Microsoft SQL Server and Visual Studio Code.
 
 
 
-## Queries and Results
-The flat files used for creating the database are included in the project folder. It is recommended to go through these datasets first.
 
-1. **Details of Shipments Over 2,000 with Fewer than 100 Boxes**
-   ```sql
-   SELECT *
-   FROM 
-      sales
-   WHERE 
-      Amount > 2000 AND Boxes < 100;
-   ```
-- Result : Retrieves all shipments where the amount exceeds 2,000 and the number of boxes is less than 100.
+## Queries and Explanations
+Flatfiles used to create database are included in the project folder. It is recommened to go through these datasets first.
 
-2. **Total Shipments by Salesperson in January 2022**
-   ```sql
-   SELECT 
-      people.Sales_person,
-      SUM(Boxes) AS Total_Shipments
-   FROM 
-      sales JOIN people ON people.SP_ID = sales.Sales_Person
-   WHERE
-      MONTH(Date) = 1
-   GROUP BY 
-      people.Sales_person
-   ORDER BY 
-      Total_Shipments DESC;
-   ```
-- Result : Provides the total number of shipments made by each salesperson in January 2022, sorted by the number of shipments.
+### 1. Find Customers Who Have Never Ordered
+```sql
+SELECT 
+    users.user_id, users.name as user_name 
+FROM
+    users
+WHERE user_id IN (
+    SELECT
+        user_id
+    FROM
+        users
+    EXCEPT
+    SELECT
+        user_id 
+    FROM
+        orders
+);
+```
+- Result : This query identifies users in the users table who do not have any associated records in the orders table, indicating that they have never placed an order.
 
-3. **Comparison of Box Sales: Milk Bars vs. Eclairs**
-   ```sql
-   SELECT 
-      products.Product,
-      SUM(sales.Boxes) AS Total_Boxes_Sold
-   FROM 
-      sales JOIN products ON products.Product_ID = sales.Product
-   WHERE 
-      products.Product IN ('Eclairs', 'Milk Bars')
-   GROUP BY 
-      products.Product
-   ORDER BY 
-      Total_Boxes_Sold DESC;
-   ```
-- Result : Identifies which product sold more boxes between Milk Bars and Eclairs.
+### 2. What is the Average Price Per Dish?
+```sql
+SELECT 
+    food.f_name, AVG(price) AS average_price
+FROM
+    menu INNER JOIN food ON menu.f_id=food.f_id
+GROUP BY 
+    food.f_name
+ORDER BY 
+    average_price DESC
+;
+```
+- Result : This query calculates the average price of each dish by joining the menu and food tables, allowing for insights into pricing strategies for different food items.
 
-4. **Product Sales in the First 7 Days of February 2022**
-   ```sql
-   SELECT 
-      products.Product, SUM(sales.Boxes) AS Total_Boxes_Sold
-   FROM 
-      sales JOIN products ON products.Product_ID = sales.Product
-   WHERE 
-      sales.Date BETWEEN '2022-02-01' AND '2022-02-07'
-   GROUP BY 
-      products.Product
-   ORDER BY 
-      Total_Boxes_Sold DESC;
-   ```
-- Result : Shows which product had the highest sales in boxes during the specified timeframe.
+### 3. Find Top Restaurant in Terms of Number of Orders for the Month of June
+```sql
+SELECT TOP 1
+    orders.r_id, resturants.r_name, COUNT(orders.r_id) as number_of_orders
+FROM
+    orders INNER JOIN resturants ON orders.r_id=resturants.r_id
+WHERE
+    MONTH(orders.date)=6
+GROUP BY 
+    orders.r_id, resturants.r_name    
+ORDER BY 
+    number_of_orders DESC
+;
+```
+- Result : This query identifies the restaurant with the highest number of orders in June, which helps in understanding seasonal trends and popularity.
 
-5. **Milk Bars vs. Eclairs Sales in Early February 2022**
-   ```sql
-   SELECT 
-      products.Product, 
-      SUM(sales.Boxes) AS Total_Boxes_Sold
-   FROM 
-      sales JOIN products ON products.Product_ID = sales.Product
-   WHERE 
-      sales.Date BETWEEN '2022-02-01' AND '2022-02-07' AND products.Product IN ('Eclairs', 'Milk Bars')
-   GROUP BY 
-      products.Product
-   ORDER BY 
-      Total_Boxes_Sold DESC;
-   ```
-- Result : Compares the box sales of Milk Bars and Eclairs in the first week of February 2022.
+### 4. Restaurants with Monthly Sales Greater than 500 for June
+```sql
+SELECT 
+    orders.r_id, resturants.r_name, SUM(orders.amount) as Total_revenue
+FROM
+    orders INNER JOIN resturants ON orders.r_id=resturants.r_id
+WHERE
+    MONTH(orders.date)=6
+GROUP BY
+    orders.r_id, resturants.r_name
+HAVING
+    SUM(orders.amount) > 500
+ORDER BY
+    Total_revenue DESC
+;
+```
+- Result : This query identifies restaurants that achieved significant sales during June, which is useful for assessing financial performance.
 
-6. **Shipments with Fewer than 100 Customers and Boxes**
-   ```sql
-   SELECT *
-   FROM 
-      sales
-   WHERE 
-      Customers < 100 AND Boxes < 100;
-   ```
-- Result : Lists shipments that had fewer than 100 customers and boxes.
+### 5. Show All Orders with Order Details of User Ankit Between May 15 and June 15
+```sql
+SELECT
+    orders.date, users.user_id, users.name, orders.order_id, food.f_name, orders.amount
+FROM
+    users INNER JOIN orders ON users.user_id=orders.user_id
+    INNER JOIN order_details ON orders.order_id=order_details.order_id
+    INNER JOIN food ON order_details.f_id=food.f_id
+WHERE
+    users.name LIKE 'Ankit' AND orders.date BETWEEN '2022-05-15' AND '2022-06-15'
+;
+```
+- Result : This query retrieves all order details for a specific user named Ankit, allowing for personalized insights into customer preferences.
 
-7. **Wednesday Shipments with Under 100 Customers and Boxes**
-   ```sql
-   SELECT *, DAY(Date) AS Day
-   FROM 
-      sales
-   WHERE 
-      Customers < 100 AND Boxes < 100 AND DAY(Date) = 3; 
-   ```
-- Result : Filters for shipments on Wednesdays that had fewer than 100 customers and boxes.
+### 6. Find Restaurant with Maximum Repeat Customers
+```sql
+SELECT TOP 1
+     x.r_id, resturants.r_name, COUNT(*) AS Loyal_customers
+FROM (
+    SELECT
+        orders.r_id, orders.user_id, COUNT(*) AS Number_of_orders
+    FROM 
+        orders
+    WHERE orders.r_id IS NOT NULL
+    GROUP BY
+        orders.r_id, orders.user_id 
+    HAVING 
+        COUNT(*) > 1
+) x
+INNER JOIN resturants ON x.r_id=resturants.r_id
+GROUP BY x.r_id, resturants.r_name
+ORDER BY Loyal_customers DESC
+;
+```
+- Result : This query identifies the restaurant with the highest number of loyal customers, aiding in the development of loyalty programs.
 
+### 7. Month-over-Month Revenue Growth of Business
+```sql
+WITH revenue AS (
+    SELECT 
+        MONTH(date) AS Month_number,
+        FORMAT(date, 'MMM') AS Month_name,
+        SUM(amount) AS Total_revenue
+    FROM
+        orders
+    WHERE
+        MONTH(date) IS NOT NULL
+    GROUP BY 
+        MONTH(date), FORMAT(date, 'MMM')
+)
+SELECT
+    Month_name,
+    Total_revenue,
+    LAG(Total_revenue, 1) OVER (ORDER BY Month_number) AS prev_revenue,
+    ((Total_revenue - LAG(Total_revenue, 1) OVER (ORDER BY Month_number)) * 100.0) /
+    NULLIF(LAG(Total_revenue, 1) OVER (ORDER BY Month_number), 0) AS MoM_growth_percentage
+FROM
+    revenue
+ORDER BY 
+    Month_number
+;
+```
+- Result : This query identifies the restaurant with the highest number of loyal customers, aiding in the development of loyalty programs.
 
-
-
-8. **Salespersons with Shipments in Early January 2022**
-   ```sql
-   SELECT people.Sales_person, 
-       SUM(sales.Amount) AS Total_Amount,
-       SUM(sales.Customers) AS Total_Customers, 
-       SUM(sales.Boxes) AS Total_Boxes
-   FROM 
-      sales JOIN people ON people.SP_ID = sales.Sales_Person
-   WHERE 
-      sales.Date BETWEEN '2022-01-01' AND '2022-01-07'
-   GROUP BY 
-      people.Sales_person; 
-   ```
-- Result : Lists salespersons who made at least one shipment in the first week of January 2022, along with total amounts, customers, and boxes.
-
-9. **Salespersons with No Shipments in Early January 2022**
-   ```sql
-   SELECT 
-      Sales_person
-   FROM 
-      people
-   EXCEPT
-   SELECT DISTINCT 
-      people.Sales_person
-   FROM 
-      sales JOIN people ON people.SP_ID = sales.Sales_Person
-   WHERE 
-      sales.Date BETWEEN '2022-01-01' AND '2022-01-07'; 
-   ```
-- Result : Identifies salespersons who did not have any shipments during the specified timeframe.
-
-10. **Monthly Shipments Over 1,000 Boxes**
-   ```sql
-   SELECT 
-      FORMAT(sales.Date, 'yyyy-MM') AS Month,
-      COUNT(sales.Boxes) AS Shipments_Greater_Than_1000_Boxes
-   FROM 
-      sales
-   WHERE 
-      sales.Boxes > 1000
-   GROUP BY 
-      FORMAT(sales.Date, 'yyyy-MM')
-   ORDER BY 
-      FORMAT(sales.Date, 'yyyy-MM'); 
-   ```
-- Result : Counts how many times shipments exceeded 1,000 boxes each month.
-
-11. **Monthly Shipments of ‘After Nines’ to ‘New Zealand’**
-   ```sql
-   SELECT 
-      FORMAT(sales.Date, 'yyyy-MM') AS Month, 
-      products.Product, 
-      geo.Geo, *
-   FROM 
-      sales JOIN products ON products.Product_ID = sales.Product JOIN geo ON geo.GeoID = sales.Geo
-   WHERE 
-      products.Product = 'After Nines' AND geo.Geo = 'New Zealand'
-   ORDER BY 
-      Month DESC; 
-   ```
-- Result : Lists months in which at least one box of ‘After Nines’ was shipped to ‘New Zealand’.
-
-12. **Months without Shipments of ‘After Nines’ to ‘New Zealand’**
-   ```sql
-   SELECT 
-      FORMAT(sales.Date, 'yyyy-MM') AS Month
-   FROM 
-      sales
-   EXCEPT
-   SELECT 
-      FORMAT(sales.Date, 'yyyy-MM') AS Month
-   FROM 
-      sales JOIN products ON products.Product_ID = sales.Product JOIN geo ON geo.GeoID = sales.Geo
-   WHERE 
-      products.Product = 'After Nines' AND geo.Geo = 'New Zealand'; 
-   ```
-- Result : Identifies months where no shipments of ‘After Nines’ to ‘New Zealand’ occurred. An empty result indicates shipments were made in all months.
-
-13. **Monthly Chocolate Box Purchases: India vs. Australia**
-   ```sql
-   SELECT 
-      FORMAT(s.Date, 'yyyy-MM') AS Month, 
-      g.Geo, 
-      SUM(s.Boxes) AS Total_Boxes
-   FROM 
-      sales s JOIN geo g ON s.Geo = g.GeoID
-   WHERE 
-      g.Geo IN ('India', 'Australia')
-   GROUP BY 
-      FORMAT(s.Date, 'yyyy-MM'), g.Geo
-   ORDER BY 
-      Month; 
-   ```
-- Result : Compares monthly chocolate box purchases between India and Australia.
+### 8.  Favorite Food of Customer
+```sql
+SELECT 
+    users.name AS user_name,
+    food.f_name AS favourite_food,
+    COUNT(*) AS order_count
+FROM 
+    orders
+JOIN 
+    order_details ON orders.order_id = order_details.order_id
+JOIN 
+    users ON orders.user_id = users.user_id
+JOIN 
+    food ON order_details.f_id = food.f_id
+GROUP BY 
+    users.name, food.f_name
+HAVING
+    COUNT(*) > 1
+ORDER BY 
+    order_count DESC
+;
+```
+- Result : This query identifies each user's favorite food based on the frequency of orders, providing insights for personalized marketing strategies.
 
 ## Conclusion
-This sales analysis project offers valuable insights into the performance of the chocolate business by examining various dimensions of sales data. The analysis highlights significant trends in product popularity, reveals patterns in sales across different time periods, and evaluates the effectiveness of individual salespersons. By identifying key metrics and trends, this project provides actionable recommendations for optimizing sales strategies, enhancing product offerings, and improving overall customer satisfaction. The findings underscore the importance of data-driven decision-making in driving business growth and adapting to changing market conditions.
-
+This data analysis project aims to provide actionable insights to stakeholders in the food aggregation industry. The findings from the SQL queries can help in making data-driven decisions for marketing, pricing, and customer engagement. Future enhancements could include visualizing these insights with graphs and dashboards to better communicate trends and performance metrics.
